@@ -86,21 +86,6 @@ main PROC
 		add iter_b, CL
 		movzx EAX, iter_a
 		
-		mov buff_a, AL
-		mov buff_b, BL
-
-		mov AL, iter_a
-		call WriteDec
-		mWrite <" ",0dh,0ah>
-		
-		mov AL, iter_b
-		call WriteDec
-
-		mWrite <" ",0dh,0ah>
-		mWrite <" ",0dh,0ah>
-		mov AL, buff_a
-		mov BL, buff_b
-
 		; Find the next largest entry from the remaining unsorted entries
 		SelectLoop:
 			; Compare the current selection to the current SelectLoop index
@@ -116,15 +101,6 @@ main PROC
 
 			ChangeSelection:
 
-			;mov buff_a, AL
-			;mov buff_b, BL
-			;movzx EDX, iter_b
-			;mov AL, student_grade_map[EDX]
-			;call WriteDec
-			;mWrite <" ",0dh,0ah>
-			;mov AL, buff_a
-			;mov BL, buff_b
-
 			movzx EBX, iter_b
 
 			SelectionLoopInc:
@@ -134,6 +110,66 @@ main PROC
 
 			jne SelectLoop
 		
+		; Reset seccond loop counter
+		mov iter_b, 0
+		
+		cmp EAX, EBX
+		je SkipSwap
+
+		; Swaps the entries found at EAX and EBX
+		Swap:
+		SwapLoop:
+			mov CL, student_grade_map[EAX]	; Store byte A in a temporary register
+			mov DL, student_grade_map[EBX]	; Store byte B in a temporary register
+			mov student_grade_map[EAX], DL	; Swap byte A for byte B
+			mov student_grade_map[EBX], CL	; Swap byte B for byte A
+			inc EAX
+			inc EBX
+			mov CL, student_grade_map[EAX]
+
+			cmp CL, 255						; Check for stop bit
+			jne SwapLoop
+		jmp IncLoop
+		
+		SkipSwap:
+		add EAX, entry_length
+		add EBX, entry_length
+
+		IncLoop:
+
+		; Incrament EAX to point at the grade of the next entry
+		inc EAX
+		dec EBX
+		
+		mov CL, entry_lengthA
+		add iter_a, CL
+		mov CL, SIZEOF student_grade_map
+		sub CL, entry_lengthA
+		sub CL, entry_lengthA
+		cmp iter_a, CL
+		jne SortLoop
+
+	Grade:
+
+	; Initalize registers
+	mov EAX, 0	; Iterator for the loop
+	mov EBX, 0	; Grade assignment iterator, starts at A, ends at F
+	mov CL, 0	; Current grade being checked
+	mov DL, 0	; Letter grade threashold
+
+	GradeLoop:
+		mov CL, student_grade_map[EAX]
+
+		; Loop through potential grades, stop at F
+		CheckLoop:
+			cmp CL, DL	; Compare student grade with letter grade
+			ja Assign	; If the student's grade is above the letter grade's threashold, incrament that letter grade's count
+			sub DL, 10	; If not, go to the next letter grade
+			inc EBX
+			cmp DL, 59	; Check if the letter grade is F
+			je Assign
+			
+		Assign:
 		mov buff_a, AL
 		mov buff_b, BL
 
@@ -149,74 +185,11 @@ main PROC
 		mov AL, buff_a
 		mov BL, buff_b
 
-		; Reset seccond loop counter
-		mov iter_b, 0
-		
-		; Swaps the entries found at EAX and EBX
-		Swap:
-		SwapLoop:
-			mov CL, student_grade_map[EAX]	; Store byte A in a temporary register
-			mov DL, student_grade_map[EBX]	; Store byte B in a temporary register
-			mov student_grade_map[EAX], DL	; Swap byte A for byte B
-			mov student_grade_map[EBX], CL	; Swap byte B for byte A
-			inc EAX
-			inc EBX
-			mov CL, student_grade_map[EAX]
-
-			cmp CL, 255						; Check for stop bit
-			jne SwapLoop
-		
-		mov buff_a, AL
-		mov buff_b, BL
-
-		mov DX, 0	; Iterator for min entry slot
-		TestLoop:
-			movzx EAX, DX
-			movzx EAX, student_grade_map[EAX]
-			call WriteDec
-			mWrite <" ",0dh,0ah>
-			add DL, entry_lengthA
-			cmp DX, SIZEOF student_grade_map
-			jne TestLoop
-
-		mWrite <" ",0dh,0ah>
-		mov AL, buff_a
-		mov BL, buff_b
-
-		; Incrament EAX to point at the grade of the next entry
-		inc EAX
-		
-		mov CL, entry_lengthA
-		add iter_a, CL
-		cmp iter_a, SIZEOF student_grade_map
-		jne SortLoop
-
-	Grade:
-
-	; Initalize registers
-	mov EAX, 0	; Iterator for the loop
-	mov EBX, 0	; Grade assignment iterator, starts at A, ends at F
-	mov AL, 0	; Current grade being checked
-	mov BL, 0	; Letter grade threashold
-
-	GradeLoop:
-		mov AL, student_grade_map[EAX]
-
-		; Loop through potential grades, stop at F
-		CheckLoop:
-			cmp AL, BL	; Compare student grade with letter grade
-			ja Assign	; If the student's grade is above the letter grade's threashold, incrament that letter grade's count
-			sub BL, 10	; If not, go to the next letter grade
-			inc EBX
-			cmp BL, 59	; Check if the letter grade is F
-			je Assign
-
-		Assign:
 		add grade_counts[EBX], 1
 
 		add EAX, entry_length
 		cmp EAX, SIZEOF student_grade_map
-		jne SortLoop
+		jne GradeLoop
 
 main ENDP
 
